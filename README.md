@@ -30,7 +30,7 @@ The backend handles dynamic content like sports cards, gallery images, and enrol
     ```bash
     node server.js
     ```
-    *The API will be live at `http://localhost:5004`.*
+    *The API will be live at `http://localhost:5009`.*
 
 ---
 

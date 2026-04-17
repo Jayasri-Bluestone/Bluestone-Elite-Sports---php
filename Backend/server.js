@@ -54,6 +54,23 @@ const db = pool.promise();
         if (!columnNames.includes('program_type')) {
             await db.query('ALTER TABLE sports ADD COLUMN program_type VARCHAR(50) DEFAULT "Academy"');
         }
+        if (!columnNames.includes('is_brochure')) {
+            await db.query('ALTER TABLE sports ADD COLUMN is_brochure BOOLEAN DEFAULT 0');
+        }
+        if (!columnNames.includes('status')) {
+            await db.query('ALTER TABLE sports ADD COLUMN status VARCHAR(20) DEFAULT "Active"');
+        }
+
+        // Testimonials Table Migration
+        await db.query(`CREATE TABLE IF NOT EXISTS testimonials (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            role VARCHAR(255),
+            content TEXT NOT NULL,
+            image_path LONGTEXT,
+            status VARCHAR(20) DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
         
         console.log('Database schema migrated for Base64 and Enhanced Details support.');
     } catch (e) {
@@ -151,11 +168,11 @@ app.delete('/api/contact/:id', async (req, res) => {
 
 // Create Sport (Accepts Base64 + Enhanced Fields)
 app.post('/api/sports', async (req, res) => {
-    const { name, category, description, details_url, image, age_category, training_schedule, program_type } = req.body;
+    const { name, category, description, details_url, image, age_category, training_schedule, program_type, is_brochure, status } = req.body;
     try {
-        const sql = `INSERT INTO sports (name, category, description, image_path, details_url, age_category, training_schedule, program_type) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-        const [result] = await db.query(sql, [name, category, description, image, details_url, age_category, training_schedule, program_type || 'Academy']);
+        const sql = `INSERT INTO sports (name, category, description, image_path, details_url, age_category, training_schedule, program_type, is_brochure, status) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        const [result] = await db.query(sql, [name, category, description, image, details_url, age_category, training_schedule, program_type || 'Academy', is_brochure ? 1 : 0, status || 'Active']);
         res.json({ success: true, id: result.insertId });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -164,20 +181,43 @@ app.post('/api/sports', async (req, res) => {
 
 // Update Sport (Accepts Base64 + Enhanced Fields)
 app.put('/api/sports/:id', async (req, res) => {
-    const { name, category, description, details_url, image, age_category, training_schedule, program_type } = req.body;
-    let sql = `UPDATE sports SET name = ?, category = ?, description = ?, details_url = ?, age_category = ?, training_schedule = ?, program_type = ?`;
-    let params = [name, category, description, details_url, age_category, training_schedule, program_type];
-
-    if (image) {
-        sql += `, image_path = ?`;
-        params.push(image);
-    }
-
-    sql += ` WHERE id = ?`;
-    params.push(req.params.id);
-
+    const { name, category, description, details_url, image, age_category, training_schedule, program_type, is_brochure, status } = req.body;
+    
     try {
+        let sql = `UPDATE sports SET name = ?, category = ?, description = ?, details_url = ?, age_category = ?, training_schedule = ?, program_type = ?, is_brochure = ?, status = ?`;
+        let params = [name, category, description, details_url, age_category, training_schedule, program_type, is_brochure ? 1 : 0, status || 'Active'];
+
+        if (image) {
+            sql += `, image_path = ?`;
+            params.push(image);
+        }
+
+        sql += ` WHERE id = ?`;
+        params.push(req.params.id);
+
         await db.query(sql, params);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH Toggle Program Status
+app.patch('/api/sports/:id/status', async (req, res) => {
+    const { status } = req.body;
+    try {
+        await db.query('UPDATE sports SET status = ? WHERE id = ?', [status, req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH Toggle Brochure Status
+app.patch('/api/sports/:id/brochure', async (req, res) => {
+    const { is_brochure } = req.body;
+    try {
+        await db.query('UPDATE sports SET is_brochure = ? WHERE id = ?', [is_brochure ? 1 : 0, req.params.id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -214,6 +254,89 @@ app.delete('/api/gallery/:id', async (req, res) => {
     }
 });
 
+// --- TESTIMONIALS (Base64) ---
+
+// Get All Testimonials
+app.get('/api/testimonials', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM testimonials ORDER BY created_at DESC');
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Create Testimonial
+app.post('/api/testimonials', async (req, res) => {
+    const { name, role, content, image, status } = req.body;
+    try {
+        const sql = `INSERT INTO testimonials (name, role, content, image_path, status) VALUES (?, ?, ?, ?, ?)`;
+        const [result] = await db.query(sql, [name, role, content, image, status || 'Active']);
+        res.json({ success: true, id: result.insertId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update Testimonial
+app.put('/api/testimonials/:id', async (req, res) => {
+    const { name, role, content, image, status } = req.body;
+    try {
+        let sql = `UPDATE testimonials SET name = ?, role = ?, content = ?, status = ?`;
+        let params = [name, role, content, status || 'Active'];
+        if (image) {
+            sql += `, image_path = ?`;
+            params.push(image);
+        }
+        sql += ` WHERE id = ?`;
+        params.push(req.params.id);
+        await db.query(sql, params);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH Toggle Testimonial Status
+app.patch('/api/testimonials/:id/status', async (req, res) => {
+    const { status } = req.body;
+    try {
+        await db.query('UPDATE testimonials SET status = ? WHERE id = ?', [status, req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete Testimonial
+app.delete('/api/testimonials/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM testimonials WHERE id = ?', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- CONSOLIDATED SITE DATA ---
+app.get('/api/site-init', async (req, res) => {
+    try {
+        const [stats] = await db.query('SELECT * FROM stats');
+        const [sports] = await db.query('SELECT * FROM sports WHERE status = "Active"');
+        const [testimonials] = await db.query('SELECT * FROM testimonials WHERE status = "Active" ORDER BY created_at DESC LIMIT 6');
+        const [gallery] = await db.query('SELECT * FROM gallery ORDER BY id DESC LIMIT 12');
+        
+        res.json({
+            stats,
+            sports,
+            testimonials,
+            gallery
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- STATS ---
 app.put('/api/stats/:id', async (req, res) => {
     const { label, value } = req.body;
@@ -236,5 +359,5 @@ app.post('/api/stats', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 5004;
-app.listen(PORT, () => console.log(`Server live on port ${PORT}`));
+const PORT = 5009;
+app.listen(PORT, () => console.log(`BES server live on port ${PORT}`));

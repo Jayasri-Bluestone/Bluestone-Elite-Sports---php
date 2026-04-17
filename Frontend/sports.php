@@ -7,19 +7,13 @@ include 'includes/header.php';
 <section class="bg-primary pt-32 pb-20 relative overflow-hidden text-center text-white">
     <div class="absolute inset-0 bg-black/10 blur-3xl opacity-30"></div>
     <div class="container mx-auto px-4 md:px-12 relative z-10">
-        <h1 class="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-4">The <span class="text-black italic">Academy Hub</span></h1>
-        <p class="text-black font-bold uppercase tracking-widest text-[10px] md:text-xs">Professional Disciplines & Training</p>
+        <h1 class="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-4">The <span class="text-secondary italic">Academy Hub</span></h1>
+        <p class="text-white font-bold uppercase tracking-widest text-[10px] md:text-xs">Professional Disciplines & Training</p>
     </div>
 </section>
 
 <!-- Sports Archive -->
 <section class="py-24 container mx-auto px-4 md:px-12">
-    <div class="flex flex-wrap justify-center gap-4 mb-16">
-        <button class="bg-primary text-white px-8 py-3 rounded-full font-bold uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20">All Categories</button>
-        <button class="border border-gray-200 px-8 py-3 rounded-full font-bold uppercase text-xs tracking-widest hover:border-primary hover:text-primary transition">Academy</button>
-        <button class="border border-gray-200 px-8 py-3 rounded-full font-bold uppercase text-xs tracking-widest hover:border-primary hover:text-primary transition">Professional</button>
-        <button class="border border-gray-200 px-8 py-3 rounded-full font-bold uppercase text-xs tracking-widest hover:border-primary hover:text-primary transition">Summer & Indoor</button>
-    </div>
 
     <div class="overflow-x-auto pb-12 custom-scrollbar">
         <div class="flex flex-row gap-6 min-h-[600px] w-max px-4">
@@ -29,8 +23,10 @@ include 'includes/header.php';
                         <div class="w-[240px] hover:w-[550px] transition-all duration-700 ease-in-out group relative overflow-hidden bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl cursor-pointer">
                             <!-- Background Image -->
                             <div class="absolute inset-0">
-                                <?php if (!empty($sport['image_path'])): ?>
-                                    <img src="<?php echo $sport['image_path']; ?>" alt="<?php echo $sport['name']; ?>" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110">
+                                <?php 
+                                $displayImage = $api->resolveSportImage($sport);
+                                if (!empty($displayImage)): ?>
+                                    <img src="<?php echo $displayImage; ?>" alt="<?php echo $sport['name']; ?>" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" loading="lazy" decoding="async">
                                 <?php else: ?>
                                     <div class="w-full h-full bg-gradient-to-br from-gray-400 to-gray-600"></div>
                                 <?php endif; ?>
@@ -69,7 +65,7 @@ include 'includes/header.php';
                     <?php endif; ?>
                 <?php endforeach; ?>
             <?php else: ?>
-                <div class="w-full py-20 text-center text-gray-400 font-bold uppercase tracking-widest italic">Loading Academy Programs...</div>
+                <div class="w-full py-20 text-center text-gray-400 font-bold uppercase tracking-widest">Loading Academy Programs...</div>
             <?php endif; ?>
         </div>
     </div>
